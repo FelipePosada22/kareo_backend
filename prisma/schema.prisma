@@ -91,3 +91,20 @@ model Professional {
   appointments Appointment[]
   schedules    Schedule[]
 }
+
+model Patient {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  phone     String?
+  email     String?
+  birthdate DateTime?
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  appointments Appointment[]
+}
