@@ -3,14 +3,14 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./modules/auth/auth.routes";
 import { authMiddleware } from "./shared/middleware/auth.middleware";
-
+import patientRoutes from "./modules/patients/patient.routes";
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-console.log(process.env.DATABASE_URL);
 app.use("/auth", authRoutes);
+app.use("/patients", patientRoutes);
 
 app.get("/me", authMiddleware, (req: any, res) => {
   res.json(req.user);
