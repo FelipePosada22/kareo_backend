@@ -84,4 +84,32 @@ static async create(req: any, res: Response) {
     }
   }
 
+
+  static async calendar(req: any, res: Response) {
+
+  try {
+
+    const tenantId = req.user.tenantId;
+
+    const { professionalId, startDate, endDate } = req.query;
+
+    const calendar = await AppointmentService.getCalendar(
+      tenantId,
+      professionalId,
+      startDate,
+      endDate
+    );
+
+    res.json(calendar);
+
+  } catch (error: any) {
+
+    res.status(400).json({
+      message: error.message
+    });
+
+  }
+
+}
+
 }
