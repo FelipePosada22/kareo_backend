@@ -1,38 +1,57 @@
 import { prisma } from "../../config/prisma";
 
 export class AppointmentService {
-
- static async create(data: any, tenantId: string) {
-
+  static async create(data: any, tenantId: string) {
     const { professionalId, startTime, endTime } = data;
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    const dayOfWeek = start.getDay(); // 0 domingo - 6 sábado
+
+    const schedule = await prisma.schedule.findFirst({
+      where: {
+        professionalId,
+        dayOfWeek,
+      },
+    });
+
+    if (!schedule) {
+      throw new Error("Professional does not work on this day");
+    }
+
+    const startHour = start.toTimeString().slice(0, 5);
+    const endHour = end.toTimeString().slice(0, 5);
+
+    if (startHour < schedule.startTime || endHour > schedule.endTime) {
+      throw new Error("Appointment outside professional working hours");
+    }
 
     const overlapping = await prisma.appointment.findFirst({
       where: {
         tenantId,
         professionalId,
-        startTime: {
-          lt: new Date(endTime)
-        },
-        endTime: {
-          gt: new Date(startTime)
-        }
-      }
+        startTime: { lt: end },
+        endTime: { gt: start },
+      },
     });
 
     if (overlapping) {
-      throw new Error("Professional already has an appointment in this time range");
+      throw new Error(
+        "Professional already has an appointment in this time range",
+      );
     }
 
     return prisma.appointment.create({
       data: {
         ...data,
-        tenantId
+        tenantId,
       },
       include: {
         patient: true,
         professional: true,
-        appointmentType: true
-      }
+        appointmentType: true,
+      },
     });
   }
 
@@ -82,5 +101,4 @@ export class AppointmentService {
       },
     });
   }
-
 }
