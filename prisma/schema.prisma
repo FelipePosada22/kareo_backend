@@ -44,3 +44,19 @@ enum SubscriptionStatus {
   CANCELLED
   EXPIRED
 }
+
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  professionals   Professional[]
+  patients        Patient[]
+  appointmentTypes AppointmentType[]
+  appointments    Appointment[]
+  subscriptions   Subscription[]
+}
