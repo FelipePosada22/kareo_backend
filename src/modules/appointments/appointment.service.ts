@@ -2,17 +2,37 @@ import { prisma } from "../../config/prisma";
 
 export class AppointmentService {
 
-  static async create(data: any, tenantId: string) {
+ static async create(data: any, tenantId: string) {
+
+    const { professionalId, startTime, endTime } = data;
+
+    const overlapping = await prisma.appointment.findFirst({
+      where: {
+        tenantId,
+        professionalId,
+        startTime: {
+          lt: new Date(endTime)
+        },
+        endTime: {
+          gt: new Date(startTime)
+        }
+      }
+    });
+
+    if (overlapping) {
+      throw new Error("Professional already has an appointment in this time range");
+    }
+
     return prisma.appointment.create({
       data: {
         ...data,
-        tenantId,
+        tenantId
       },
       include: {
         patient: true,
         professional: true,
-        appointmentType: true,
-      },
+        appointmentType: true
+      }
     });
   }
 
