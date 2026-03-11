@@ -108,3 +108,73 @@ model Patient {
 
   appointments Appointment[]
 }
+
+model AppointmentType {
+  id              String  @id @default(uuid())
+  tenantId        String
+  name            String
+  durationMinutes Int
+  price           Float?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  appointments Appointment[]
+}
+
+model Appointment {
+  id               String            @id @default(uuid())
+  tenantId         String
+  patientId        String
+  professionalId   String
+  appointmentTypeId String
+
+  startTime DateTime
+  endTime   DateTime
+  status    AppointmentStatus
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  tenant           Tenant          @relation(fields: [tenantId], references: [id])
+  patient          Patient         @relation(fields: [patientId], references: [id])
+  professional     Professional    @relation(fields: [professionalId], references: [id])
+  appointmentType  AppointmentType @relation(fields: [appointmentTypeId], references: [id])
+
+  reminders Reminder[]
+}
+
+model Schedule {
+  id             String @id @default(uuid())
+  professionalId String
+
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  professional Professional @relation(fields: [professionalId], references: [id])
+}
+
+model Reminder {
+  id            String       @id @default(uuid())
+  appointmentId String
+  type          ReminderType
+  sentAt        DateTime?
+  status        String?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model Subscription {
+  id        String              @id @default(uuid())
+  tenantId  String
+  plan      SubscriptionPlan
+  status    SubscriptionStatus
+
+  startedAt DateTime
+  expiresAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
