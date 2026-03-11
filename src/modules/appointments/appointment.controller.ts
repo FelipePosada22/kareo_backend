@@ -3,20 +3,26 @@ import { AppointmentService } from "./appointment.service";
 
 export class AppointmentController {
 
-  static async create(req: any, res: Response) {
-    try {
-      const tenantId = req.user.tenantId;
+static async create(req: any, res: Response) {
+  try {
 
-      const appointment = await AppointmentService.create(
-        req.body,
-        tenantId
-      );
+    const tenantId = req.user.tenantId;
 
-      res.status(201).json(appointment);
-    } catch (error) {
-      res.status(500).json({ message: "Error creating appointment" });
-    }
+    const appointment = await AppointmentService.create(
+      req.body,
+      tenantId
+    );
+
+    res.status(201).json(appointment);
+
+  } catch (error: any) {
+
+    res.status(400).json({
+      message: error.message
+    });
+
   }
+}
 
   static async findAll(req: any, res: Response) {
     try {
