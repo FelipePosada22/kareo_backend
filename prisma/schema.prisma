@@ -74,3 +74,20 @@ model User {
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 }
+
+model Professional {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  specialty String?
+  email     String?
+  phone     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  appointments Appointment[]
+  schedules    Schedule[]
+}
