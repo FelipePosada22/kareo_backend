@@ -5,10 +5,176 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum ReminderType {
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  CLINIC
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users           User[]
+  professionals   Professional[]
+  patients        Patient[]
+  appointmentTypes AppointmentType[]
+  appointments    Appointment[]
+  subscriptions   Subscription[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Professional {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  specialty String?
+  email     String?
+  phone     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  appointments Appointment[]
+  schedules    Schedule[]
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  phone     String?
+  email     String?
+  birthdate DateTime?
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  appointments Appointment[]
+}
+
+model AppointmentType {
+  id              String  @id @default(uuid())
+  tenantId        String
+  name            String
+  durationMinutes Int
+  price           Float?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  appointments Appointment[]
+}
+
+model Appointment {
+  id               String            @id @default(uuid())
+  tenantId         String
+  patientId        String
+  professionalId   String
+  appointmentTypeId String
+
+  startTime DateTime
+  endTime   DateTime
+  status    AppointmentStatus
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  tenant           Tenant          @relation(fields: [tenantId], references: [id])
+  patient          Patient         @relation(fields: [patientId], references: [id])
+  professional     Professional    @relation(fields: [professionalId], references: [id])
+  appointmentType  AppointmentType @relation(fields: [appointmentTypeId], references: [id])
+
+  reminders Reminder[]
+}
+
+model Schedule {
+  id             String @id @default(uuid())
+  professionalId String
+
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  professional Professional @relation(fields: [professionalId], references: [id])
+}
+
+model Reminder {
+  id            String       @id @default(uuid())
+  appointmentId String
+  type          ReminderType
+  sentAt        DateTime?
+  status        String?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+}
+
+model Subscription {
+  id        String              @id @default(uuid())
+  tenantId  String
+  plan      SubscriptionPlan
+  status    SubscriptionStatus
+
+  startedAt DateTime
+  expiresAt DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 }
