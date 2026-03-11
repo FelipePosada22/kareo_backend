@@ -4,6 +4,7 @@ import cors from "cors";
 import authRoutes from "./modules/auth/auth.routes";
 import { authMiddleware } from "./shared/middleware/auth.middleware";
 import patientRoutes from "./modules/patients/patient.routes";
+import appointmentRoutes from "./modules/appointments/appointment.routes";
 const app = express();
 
 app.use(cors());
@@ -11,6 +12,7 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/patients", patientRoutes);
+app.use("/appointments", appointmentRoutes);
 
 app.get("/me", authMiddleware, (req: any, res) => {
   res.json(req.user);
