@@ -101,4 +101,48 @@ export class AppointmentService {
       },
     });
   }
+
+  static async getCalendar(
+  tenantId: string,
+  professionalId: string,
+  startDate: string,
+  endDate: string
+) {
+
+  return prisma.appointment.findMany({
+    where: {
+      tenantId,
+      professionalId,
+      startTime: {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      }
+    },
+    include: {
+      patient: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
+      professional: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
+      appointmentType: {
+        select: {
+          id: true,
+          name: true,
+          durationMinutes: true
+        }
+      }
+    },
+    orderBy: {
+      startTime: "asc"
+    }
+  });
+
+}
 }
