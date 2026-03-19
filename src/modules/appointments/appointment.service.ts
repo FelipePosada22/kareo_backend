@@ -7,7 +7,8 @@ export class AppointmentService {
     const start = new Date(startTime);
     const end = new Date(endTime);
 
-    const dayOfWeek = start.getDay(); // 0 domingo - 6 sábado
+    const dayOfWeek = start.getDay();
+
 
     const schedule = await prisma.schedule.findFirst({
       where: {
@@ -16,12 +17,13 @@ export class AppointmentService {
       },
     });
 
+
     if (!schedule) {
       throw new Error("Professional does not work on this day");
     }
 
-    const startHour = start.toTimeString().slice(0, 5);
-    const endHour = end.toTimeString().slice(0, 5);
+    const startHour = start.toISOString().slice(11, 16);
+    const endHour = end.toISOString().slice(11, 16);
 
     if (startHour < schedule.startTime || endHour > schedule.endTime) {
       throw new Error("Appointment outside professional working hours");
@@ -109,13 +111,19 @@ export class AppointmentService {
   endDate: string
 ) {
 
+  const start = new Date(startDate);
+  start.setHours(0,0,0,0);
+
+  const end = new Date(endDate);
+  end.setHours(23,59,59,999);
+
   return prisma.appointment.findMany({
     where: {
       tenantId,
       professionalId,
       startTime: {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
+        gte: start,
+        lte: end
       }
     },
     include: {

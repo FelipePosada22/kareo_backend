@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { prisma } from "../../config/prisma";
 import { generateToken } from "../../shared/utils/jwt";
