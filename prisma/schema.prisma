@@ -46,6 +46,33 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+enum TreatmentPlanStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  PARTIAL
+}
+
+enum TreatmentPlanItemStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PrescriptionStatus {
+  DRAFT
+  DOCTOR_SIGNED
+  PATIENT_SIGNED
+  FINALIZED
+}
+
 enum InvoiceStatus {
   DRAFT
   ISSUED
@@ -79,8 +106,10 @@ model Tenant {
   patients        Patient[]
   appointmentTypes AppointmentType[]
   appointments    Appointment[]
-  subscriptions   Subscription[]
-  invoices        Invoice[]
+  subscriptions    Subscription[]
+  invoices         Invoice[]
+  treatmentPlans   TreatmentPlan[]
+  prescriptions    Prescription[]
 }
 
 model User {
@@ -110,8 +139,9 @@ model Professional {
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
-  appointments Appointment[]
-  schedules    Schedule[]
+  appointments  Appointment[]
+  schedules     Schedule[]
+  prescriptions Prescription[]
 }
 
 model Patient {
@@ -128,8 +158,10 @@ model Patient {
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
-  appointments Appointment[]
-  invoices     Invoice[]
+  appointments   Appointment[]
+  invoices       Invoice[]
+  treatmentPlans TreatmentPlan[]
+  prescriptions  Prescription[]
 }
 
 model AppointmentType {
@@ -166,8 +198,10 @@ model Appointment {
   professional     Professional    @relation(fields: [professionalId], references: [id])
   appointmentType  AppointmentType @relation(fields: [appointmentTypeId], references: [id])
 
-  reminders Reminder[]
-  invoice   Invoice?
+  reminders        Reminder[]
+  invoice          Invoice?
+  prescription     Prescription?
+  treatmentPlanItem TreatmentPlanItem?
 }
 
 model Schedule {
@@ -218,31 +252,36 @@ model Invoice {
   patientId     String
   appointmentId String?       @unique
 
-  status    InvoiceStatus @default(DRAFT)
-  issuedAt  DateTime?
-  dueDate   DateTime?
-  notes     String?
+  status          InvoiceStatus @default(DRAFT)
+  issuedAt        DateTime?
+  dueDate         DateTime?
+  notes           String?
+  treatmentPlanId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  patient     Patient      @relation(fields: [patientId], references: [id])
-  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  appointment   Appointment?   @relation(fields: [appointmentId], references: [id])
+  treatmentPlan TreatmentPlan? @relation(fields: [treatmentPlanId], references: [id])
 
   items    InvoiceItem[]
   payments Payment[]
+  refunds  Refund[]
 }
 
 model InvoiceItem {
-  id          String @id @default(uuid())
-  invoiceId   String
-  description String
-  quantity    Int    @default(1)
-  unitPrice   Float
-  total       Float
+  id                  String  @id @default(uuid())
+  invoiceId           String
+  treatmentPlanItemId String?
+  description         String
+  quantity            Int     @default(1)
+  unitPrice           Float
+  total               Float
 
-  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  invoice           Invoice            @relation(fields: [invoiceId], references: [id])
+  treatmentPlanItem TreatmentPlanItem? @relation(fields: [treatmentPlanItemId], references: [id])
 }
 
 model Payment {
@@ -253,5 +292,92 @@ model Payment {
   reference String?
   paidAt    DateTime      @default(now())
 
+  invoice Invoice  @relation(fields: [invoiceId], references: [id])
+  refunds Refund[]
+}
+
+model Refund {
+  id        String        @id @default(uuid())
+  paymentId String
+  invoiceId String
+  amount    Float
+  reason    String?
+  method    PaymentMethod
+  status    RefundStatus  @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id])
   invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model TreatmentPlan {
+  id        String              @id @default(uuid())
+  tenantId  String
+  patientId String
+  title     String
+  notes     String?
+  status    TreatmentPlanStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant              @relation(fields: [tenantId], references: [id])
+  patient Patient             @relation(fields: [patientId], references: [id])
+  items   TreatmentPlanItem[]
+  invoices Invoice[]
+}
+
+model TreatmentPlanItem {
+  id              String                  @id @default(uuid())
+  treatmentPlanId String
+  description     String
+  price           Float
+  status          TreatmentPlanItemStatus @default(PENDING)
+  appointmentId   String?                 @unique
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  treatmentPlan TreatmentPlan @relation(fields: [treatmentPlanId], references: [id])
+  appointment   Appointment?  @relation(fields: [appointmentId], references: [id])
+  invoiceItems  InvoiceItem[]
+}
+
+model Prescription {
+  id             String             @id @default(uuid())
+  tenantId       String
+  patientId      String
+  professionalId String
+  appointmentId  String?            @unique
+  diagnosis      String?
+  notes          String?
+  status         PrescriptionStatus @default(DRAFT)
+
+  doctorSignature  String?
+  patientSignature String?
+  fingerprint      String?
+  finalizedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  patient      Patient      @relation(fields: [patientId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id])
+  appointment  Appointment? @relation(fields: [appointmentId], references: [id])
+
+  items PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id             String @id @default(uuid())
+  prescriptionId String
+  medication     String
+  dosage         String
+  frequency      String
+  duration       String?
+  instructions   String?
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id])
 }

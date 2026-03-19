@@ -12,6 +12,9 @@ import invoiceRoutes from "./modules/billing/invoice.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import userRoutes from "./modules/users/user.routes";
 import clinicRoutes from "./modules/clinic/clinic.routes";
+import refundRoutes from "./modules/refunds/refund.routes";
+import treatmentPlanRoutes from "./modules/treatment-plans/treatmentPlan.routes";
+import prescriptionRoutes from "./modules/prescriptions/prescription.routes";
 const app = express();
 
 app.use(cors());
@@ -28,6 +31,9 @@ app.use("/invoices", invoiceRoutes);
 app.use("/dashboard", dashboardRoutes);
 app.use("/users", userRoutes);
 app.use("/clinic", clinicRoutes);
+app.use("/refunds", refundRoutes);
+app.use("/treatment-plans", treatmentPlanRoutes);
+app.use("/prescriptions", prescriptionRoutes);
 
 
 app.get("/me", authMiddleware, (req: any, res) => {
