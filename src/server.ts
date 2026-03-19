@@ -8,6 +8,10 @@ import appointmentRoutes from "./modules/appointments/appointment.routes";
 import professionalRoutes from "./modules/professionals/professional.routes";
 import appointmentTypeRoutes from "./modules/appointment-types/appointmentType.routes";
 import scheduleRoutes from "./modules/schedules/schedule.routes";
+import invoiceRoutes from "./modules/billing/invoice.routes";
+import dashboardRoutes from "./modules/dashboard/dashboard.routes";
+import userRoutes from "./modules/users/user.routes";
+import clinicRoutes from "./modules/clinic/clinic.routes";
 const app = express();
 
 app.use(cors());
@@ -20,6 +24,10 @@ app.use("/appointments", appointmentRoutes);
 app.use("/professionals", professionalRoutes);
 app.use("/appointment-types", appointmentTypeRoutes);
 app.use("/schedules", scheduleRoutes);
+app.use("/invoices", invoiceRoutes);
+app.use("/dashboard", dashboardRoutes);
+app.use("/users", userRoutes);
+app.use("/clinic", clinicRoutes);
 
 
 app.get("/me", authMiddleware, (req: any, res) => {

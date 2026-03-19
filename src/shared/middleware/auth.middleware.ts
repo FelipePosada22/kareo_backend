@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../utils/jwt";
+import { isTokenBlacklisted } from "../utils/tokenBlacklist";
 
 interface JwtPayload {
   userId: string;
@@ -11,7 +12,7 @@ export interface AuthRequest extends Request {
   user?: JwtPayload;
 }
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -27,19 +28,17 @@ export const authMiddleware = (
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
-    req.user = decoded;
-
-    next();
-  } catch (error: any) {
-    console.log(error)
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        message: "Token expired",
-      });
+    const blacklisted = await isTokenBlacklisted(token);
+    if (blacklisted) {
+      return res.status(401).json({ message: "Token has been revoked" });
     }
 
-    return res.status(401).json({
-      message: "Invalid token",
-    });
+    req.user = decoded;
+    next();
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expired" });
+    }
+    return res.status(401).json({ message: "Invalid token" });
   }
 };

@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { prisma } from "../../config/prisma";
-import { generateToken } from "../../shared/utils/jwt";
+import { generateToken, JWT_SECRET } from "../../shared/utils/jwt";
+import { blacklistToken } from "../../shared/utils/tokenBlacklist";
 
 export class AuthService {
   static async register(data: any) {
@@ -61,5 +62,16 @@ export class AuthService {
       token,
       user,
     };
+  }
+
+  static async logout(token: string): Promise<void> {
+    const decoded = jwt.decode(token) as { exp?: number } | null;
+
+    if (!decoded || !decoded.exp) {
+      throw new Error("Invalid token");
+    }
+
+    const expiresAt = new Date(decoded.exp * 1000);
+    await blacklistToken(token, expiresAt);
   }
 }

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"console.log\\(''Server epoch:'', Math.floor\\(Date.now\\(\\)/1000\\), ''\\\\nToken exp:   '', 1773284247, ''\\\\nDiff \\(s\\):'', 1773284247 - Math.floor\\(Date.now\\(\\)/1000\\)\\)\")",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

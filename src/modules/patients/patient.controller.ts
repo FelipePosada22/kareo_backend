@@ -56,4 +56,24 @@ export class PatientController {
       res.status(500).json({ message: "Error updating patient" });
     }
   }
+
+  static async findAppointments(req: any, res: Response) {
+    try {
+      const tenantId = req.user.tenantId;
+      const appointments = await PatientService.findAppointments(req.params.id, tenantId);
+      res.json(appointments);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching patient appointments" });
+    }
+  }
+
+  static async findInvoices(req: any, res: Response) {
+    try {
+      const tenantId = req.user.tenantId;
+      const invoices = await PatientService.findInvoices(req.params.id, tenantId);
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching patient invoices" });
+    }
+  }
 }
