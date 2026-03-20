@@ -27,4 +27,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "echo '=== ENV CHECK ===' && echo DATABASE_URL=$DATABASE_URL && echo '=================' && npx prisma migrate deploy && node dist/server.js"]
