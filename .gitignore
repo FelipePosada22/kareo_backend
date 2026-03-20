@@ -27,8 +27,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# prisma
-prisma/migrations
 
 # coverage
 coverage/

@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import authRoutes from "./modules/auth/auth.routes";
+import reminderRoutes from "./modules/reminders/reminder.routes";
+import { startReminderCron } from "./jobs/reminderCron";
 import { authMiddleware } from "./shared/middleware/auth.middleware";
 import patientRoutes from "./modules/patients/patient.routes";
 import appointmentRoutes from "./modules/appointments/appointment.routes";
@@ -34,6 +36,9 @@ app.use("/clinic", clinicRoutes);
 app.use("/refunds", refundRoutes);
 app.use("/treatment-plans", treatmentPlanRoutes);
 app.use("/prescriptions", prescriptionRoutes);
+app.use("/reminders", reminderRoutes);
+
+startReminderCron();
 
 
 app.get("/me", authMiddleware, (req: any, res) => {
