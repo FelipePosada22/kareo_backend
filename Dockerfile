@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
 
-RUN npm ci
+RUN DATABASE_URL=postgresql://dummy npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
@@ -21,7 +21,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
 
-RUN npm ci --omit=dev
+RUN DATABASE_URL=postgresql://dummy npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 
