@@ -19,6 +19,8 @@ export class DashboardService {
       appointmentsInPeriod,
       revenueToday,
       revenueInPeriod,
+      refundsToday,
+      refundsInPeriod,
       pendingInvoices,
       appointmentsByStatus,
       topProfessionals,
@@ -60,20 +62,38 @@ export class DashboardService {
         select: { status: true, startTime: true },
       }),
 
-      // Ingresos de hoy (pagos realizados hoy)
+      // Ingresos de hoy (pagos realizados hoy, excluye facturas canceladas)
       prisma.payment.findMany({
         where: {
           paidAt: { gte: todayStart, lte: todayEnd },
-          invoice: { tenantId },
+          invoice: { tenantId, status: { not: InvoiceStatus.CANCELLED } },
         },
         select: { amount: true },
       }),
 
-      // Ingresos en el periodo
+      // Ingresos en el periodo (excluye facturas canceladas)
       prisma.payment.findMany({
         where: {
           paidAt: { gte: startDate, lte: endDate },
-          invoice: { tenantId },
+          invoice: { tenantId, status: { not: InvoiceStatus.CANCELLED } },
+        },
+        select: { amount: true },
+      }),
+
+      // Refunds de hoy (solo de facturas no canceladas)
+      prisma.refund.findMany({
+        where: {
+          createdAt: { gte: todayStart, lte: todayEnd },
+          invoice: { tenantId, status: { not: InvoiceStatus.CANCELLED } },
+        },
+        select: { amount: true },
+      }),
+
+      // Refunds en el periodo (solo de facturas no canceladas)
+      prisma.refund.findMany({
+        where: {
+          createdAt: { gte: startDate, lte: endDate },
+          invoice: { tenantId, status: { not: InvoiceStatus.CANCELLED } },
         },
         select: { amount: true },
       }),
@@ -136,9 +156,13 @@ export class DashboardService {
       appointmentsCompleted: p._count.professionalId,
     }));
 
-    // Calcular ingresos
-    const totalRevenueToday = revenueToday.reduce((sum, p) => sum + p.amount, 0);
-    const totalRevenueInPeriod = revenueInPeriod.reduce((sum, p) => sum + p.amount, 0);
+    // Calcular ingresos (pagos - refunds)
+    const totalRevenueToday =
+      revenueToday.reduce((sum, p) => sum + p.amount, 0) -
+      refundsToday.reduce((sum, r) => sum + r.amount, 0);
+    const totalRevenueInPeriod =
+      revenueInPeriod.reduce((sum, p) => sum + p.amount, 0) -
+      refundsInPeriod.reduce((sum, r) => sum + r.amount, 0);
 
     // Calcular monto pendiente de facturas
     const pendingAmount = pendingInvoices.reduce(
