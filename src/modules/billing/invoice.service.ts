@@ -1,5 +1,6 @@
 import { prisma } from "../../config/prisma";
 import { InvoiceStatus } from "@prisma/client";
+import { NotificationService } from "../notifications/notification.service";
 
 export class InvoiceService {
   static async create(data: any, tenantId: string) {
@@ -25,7 +26,7 @@ export class InvoiceService {
       total: (item.quantity ?? 1) * item.unitPrice,
     }));
 
-    return prisma.invoice.create({
+    const invoice = await prisma.invoice.create({
       data: {
         tenantId,
         patientId,
@@ -43,6 +44,17 @@ export class InvoiceService {
         payments: true,
       },
     });
+
+    await NotificationService.notifyRole(
+      tenantId,
+      ["ADMIN", "RECEPTIONIST"],
+      "INVOICE_CREATED",
+      "Nueva factura creada",
+      `Se creó una nueva factura para ${invoice.patient.name}.`,
+      { invoiceId: invoice.id, patientId }
+    );
+
+    return invoice;
   }
 
   static async findAll(tenantId: string) {
@@ -85,10 +97,24 @@ export class InvoiceService {
       ? new Date()
       : invoice.issuedAt;
 
-    return prisma.invoice.update({
+    const updated = await prisma.invoice.update({
       where: { id },
       data: { status, issuedAt },
+      include: { patient: { select: { id: true, name: true } } },
     });
+
+    if (status === InvoiceStatus.ISSUED) {
+      await NotificationService.notifyRole(
+        tenantId,
+        ["ADMIN", "RECEPTIONIST"],
+        "INVOICE_ISSUED",
+        "Factura emitida",
+        `Se emitió una factura para ${updated.patient.name}.`,
+        { invoiceId: id, patientId: updated.patientId }
+      );
+    }
+
+    return updated;
   }
 
   static async addPayment(invoiceId: string, data: any, tenantId: string) {
@@ -98,7 +124,7 @@ export class InvoiceService {
 
     const invoice = await prisma.invoice.findFirst({
       where: { id: invoiceId, tenantId },
-      include: { items: true, payments: true },
+      include: { items: true, payments: true, patient: { select: { id: true, name: true } } },
     });
 
     if (!invoice) {
@@ -125,11 +151,30 @@ export class InvoiceService {
     const totalInvoice = invoice.items.reduce((sum, item) => sum + item.total, 0);
     const totalPaid = invoice.payments.reduce((sum, p) => sum + p.amount, 0) + data.amount;
 
+    const patientName = invoice.patient?.name ?? "paciente";
+
     if (totalPaid >= totalInvoice) {
       await prisma.invoice.update({
         where: { id: invoiceId },
         data: { status: InvoiceStatus.PAID },
       });
+      await NotificationService.notifyRole(
+        tenantId,
+        ["ADMIN", "RECEPTIONIST"],
+        "INVOICE_PAID",
+        "Factura pagada",
+        `La factura de ${patientName} ha sido pagada completamente.`,
+        { invoiceId, patientId: invoice.patientId }
+      );
+    } else {
+      await NotificationService.notifyRole(
+        tenantId,
+        ["ADMIN", "RECEPTIONIST"],
+        "PAYMENT_RECEIVED",
+        "Pago recibido",
+        `Se registró un pago de $${data.amount.toLocaleString()} para ${patientName}.`,
+        { invoiceId, patientId: invoice.patientId }
+      );
     }
 
     return payment;

@@ -81,6 +81,18 @@ enum InvoiceStatus {
   OVERDUE
 }
 
+enum NotificationType {
+  APPOINTMENT_CREATED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_RESCHEDULED
+  INVOICE_CREATED
+  INVOICE_ISSUED
+  INVOICE_PAID
+  PAYMENT_RECEIVED
+  TREATMENT_PLAN_CREATED
+  TREATMENT_PLAN_UPDATED
+}
+
 enum PaymentMethod {
   CASH
   CARD
@@ -111,20 +123,24 @@ model Tenant {
   treatmentPlans   TreatmentPlan[]
   prescriptions    Prescription[]
   reminders        Reminder[]
+  notifications    Notification[]
 }
 
 model User {
-  id        String   @id @default(uuid())
-  tenantId  String
-  name      String
-  email     String   @unique
-  password  String
-  role      UserRole
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  email          String   @unique
+  password       String
+  role           UserRole
+  professionalId String?  @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  professional Professional? @relation(fields: [professionalId], references: [id])
+  notifications Notification[]
 }
 
 model Professional {
@@ -139,6 +155,7 @@ model Professional {
   updatedAt DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?
 
   appointments  Appointment[]
   schedules     Schedule[]
@@ -384,4 +401,20 @@ model PrescriptionItem {
   instructions   String?
 
   prescription Prescription @relation(fields: [prescriptionId], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  tenantId  String
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 }

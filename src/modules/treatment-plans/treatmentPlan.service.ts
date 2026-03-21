@@ -1,5 +1,6 @@
 import { prisma } from "../../config/prisma";
 import { TreatmentPlanStatus, TreatmentPlanItemStatus } from "@prisma/client";
+import { NotificationService } from "../notifications/notification.service";
 
 export class TreatmentPlanService {
   static async create(data: any, tenantId: string) {
@@ -9,7 +10,7 @@ export class TreatmentPlanService {
       throw new Error("Treatment plan must have at least one item");
     }
 
-    return prisma.treatmentPlan.create({
+    const plan = await prisma.treatmentPlan.create({
       data: {
         tenantId,
         patientId,
@@ -25,6 +26,17 @@ export class TreatmentPlanService {
       },
       include: { items: true, patient: { select: { id: true, name: true } } },
     });
+
+    await NotificationService.notifyRole(
+      tenantId,
+      ["ADMIN", "RECEPTIONIST", "DOCTOR"],
+      "TREATMENT_PLAN_CREATED",
+      "Nuevo plan de tratamiento",
+      `Se creó el plan "${title}" para ${plan.patient.name}.`,
+      { treatmentPlanId: plan.id, patientId }
+    );
+
+    return plan;
   }
 
   static async findAll(tenantId: string) {

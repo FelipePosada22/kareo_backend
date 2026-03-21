@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma";
+import { NotificationService } from "../notifications/notification.service";
 
 export class AppointmentService {
   static async create(data: any, tenantId: string) {
@@ -44,17 +45,41 @@ export class AppointmentService {
       );
     }
 
-    return prisma.appointment.create({
-      data: {
-        ...data,
-        tenantId,
-      },
+    const appointment = await prisma.appointment.create({
+      data: { ...data, tenantId },
       include: {
-        patient: true,
-        professional: true,
-        appointmentType: true,
+        patient: { select: { id: true, name: true } },
+        professional: { select: { id: true, name: true } },
+        appointmentType: { select: { id: true, name: true } },
       },
     });
+
+    // Notificar al doctor asignado si tiene usuario vinculado
+    const doctorUserId = await NotificationService.getUserIdByProfessional(appointment.professionalId);
+    if (doctorUserId) {
+      const date = appointment.startTime.toLocaleDateString("es-CO", { dateStyle: "medium" });
+      const time = appointment.startTime.toLocaleTimeString("es-CO", { timeStyle: "short" });
+      await NotificationService.notifyUser(
+        tenantId,
+        doctorUserId,
+        "APPOINTMENT_CREATED",
+        "Nueva cita agendada",
+        `Tienes una nueva cita con ${appointment.patient.name} el ${date} a las ${time}.`,
+        { appointmentId: appointment.id, patientId: appointment.patientId }
+      );
+    }
+
+    // Notificar a admin y recepcionistas
+    await NotificationService.notifyRole(
+      tenantId,
+      ["ADMIN", "RECEPTIONIST"],
+      "APPOINTMENT_CREATED",
+      "Nueva cita agendada",
+      `Se agendó una cita para ${appointment.patient.name} con ${appointment.professional.name}.`,
+      { appointmentId: appointment.id, patientId: appointment.patientId }
+    );
+
+    return appointment;
   }
 
   static async findAll(tenantId: string) {
@@ -86,13 +111,32 @@ export class AppointmentService {
   }
 
   static async update(id: string, data: any, tenantId: string) {
-    return prisma.appointment.updateMany({
-      where: {
-        id,
-        tenantId,
-      },
+    const updated = await prisma.appointment.update({
+      where: { id },
       data,
+      include: {
+        patient: { select: { id: true, name: true } },
+        professional: { select: { id: true, name: true } },
+      },
     });
+
+    const doctorUserId = await NotificationService.getUserIdByProfessional(updated.professionalId);
+
+    if (data.status === "CANCELLED") {
+      const body = `La cita de ${updated.patient.name} ha sido cancelada.`;
+      if (doctorUserId) {
+        await NotificationService.notifyUser(tenantId, doctorUserId, "APPOINTMENT_CANCELLED", "Cita cancelada", body, { appointmentId: id });
+      }
+      await NotificationService.notifyRole(tenantId, ["ADMIN", "RECEPTIONIST"], "APPOINTMENT_CANCELLED", "Cita cancelada", body, { appointmentId: id });
+    } else if (data.startTime || data.endTime) {
+      const body = `La cita de ${updated.patient.name} ha sido reprogramada.`;
+      if (doctorUserId) {
+        await NotificationService.notifyUser(tenantId, doctorUserId, "APPOINTMENT_RESCHEDULED", "Cita reprogramada", body, { appointmentId: id });
+      }
+      await NotificationService.notifyRole(tenantId, ["ADMIN", "RECEPTIONIST"], "APPOINTMENT_RESCHEDULED", "Cita reprogramada", body, { appointmentId: id });
+    }
+
+    return updated;
   }
 
   static async delete(id: string, tenantId: string) {

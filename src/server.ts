@@ -17,6 +17,7 @@ import clinicRoutes from "./modules/clinic/clinic.routes";
 import refundRoutes from "./modules/refunds/refund.routes";
 import treatmentPlanRoutes from "./modules/treatment-plans/treatmentPlan.routes";
 import prescriptionRoutes from "./modules/prescriptions/prescription.routes";
+import notificationRoutes from "./modules/notifications/notification.routes";
 const app = express();
 
 app.use(cors());
@@ -37,6 +38,7 @@ app.use("/refunds", refundRoutes);
 app.use("/treatment-plans", treatmentPlanRoutes);
 app.use("/prescriptions", prescriptionRoutes);
 app.use("/reminders", reminderRoutes);
+app.use("/notifications", notificationRoutes);
 
 startReminderCron();
 
